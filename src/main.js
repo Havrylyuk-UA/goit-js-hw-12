@@ -1,20 +1,22 @@
 import iziToast from 'izitoast';
 import SimpleLightbox from 'simplelightbox';
+import axios from 'axios';
+
+// ! Variables
 
 const form = document.querySelector('.form'),
   searchInp = document.querySelector('input[type="text"]'),
   gallery = document.querySelector('.gallery'),
-  loader = document.querySelector('.loader');
+  loader = document.querySelector('.loader'),
+  loadBtn = document.querySelector('.load-btn');
 
-let searchWord = '';
+  const API_KEY = import.meta.env.VITE_API_KEY;
 
-const API_KEY = import.meta.env.VITE_API_KEY;
+  const searchImg = 40;
+  let totalPage = 1;
 
-searchInp.addEventListener('input', e => {
-  e.preventDefault();
-
-  searchWord = e.target.value;
-});
+  let searchWord = '';
+  let arrImages = [];
 
 const falseToast = {
   icon: 'icon-false',
@@ -27,61 +29,144 @@ const falseToast = {
   close: false,
 };
 
-const url = 'https://pixabay.com/api/?key=';
+// ! End Variables
 
-form.addEventListener('submit', e => {
+// ! Function
+
+const fetchAPI = async () => {
+  const response = await axios.get("https://pixabay.com/api", {
+      params: {
+        key: API_KEY,
+        q: searchWord,
+        image_type: "photo",
+        orientation: "horizontal",
+        safesearch: true,
+        per_page: searchImg,
+        page: totalPage,
+      },
+    });
+    return response.data;
+};
+
+const getImg = async () => {
+  try {
+    const data = await fetchAPI();
+
+    if (data.hits.length === 0) {
+      toggleLoader('none');
+      toggleBtn('none');
+
+      return iziToast.show(falseToast);
+    }
+
+    if (Math.ceil(data.totalHits / searchImg) === totalPage) {
+      toggleBtn('none');
+      return iziToast.show({
+        icon: 'icon-false',
+        backgroundColor: '#FC5A5A',
+        message:
+          `We're sorry, but you've reached the end of search results.`,
+        messageColor: '#FAFAFB',
+        messageSize: '16px',
+        position: 'topRight',
+        close: false,
+      })
+    }
+
+    renderImg(data)
+
+  } catch (error) {
+    console.error(error.message);
+  }
+};
+
+const renderImg = (data) => {
+  const dataList = data.hits.map(photo => {
+    return `
+    <li class="gallery-item">
+      <a href="${photo.largeImageURL}">
+        <img class="api-img" src="${photo.webformatURL}" alt="${photo.tags}">
+        <div class="img-desc">
+          <span><b>Likes:</b> <br/>${photo.likes}</span>
+          <span><b>Views:</b> <br/>${photo.views}</span>
+          <span><b>Comments:</b> <br/>${photo.comments}</span>
+          <span><b>Downloads:</b> <br/>${photo.downloads}</span>
+        </div>
+      </a>
+    </li>
+              `;
+  });
+
+  arrImages = dataList;
+
+  gallery.insertAdjacentHTML('beforeend', arrImages.join(''))
+
+  toggleBtn('inline-block');
+
+  scrollPage();
+
+  modalImg.refresh();
+};
+
+const toggleLoader = (value) => {
+  loader.style.display = value;
+}
+
+const toggleBtn = (value) => {
+  loadBtn.style.display = value;
+}
+
+const scrollPage = () => {
+  if (totalPage > 1) {
+  const imgSize = document.querySelector ('.gallery-item').getBoundingClientRect();
+  window.scrollBy({ top: imgSize.height * 2.4, left: 0, behavior: "smooth" });
+  }
+}
+
+// ! End Function
+
+// ! EventListeners
+
+searchInp.addEventListener('input', e => {
+
+  searchWord = e.target.value;
+});
+
+form.addEventListener('submit', async (e) => {
   e.preventDefault();
+  toggleBtn('none');
 
+  arrImages = [];
+  totalPage = 1;
 
   gallery.innerHTML = '';
 
-  loader.style.display = 'inline-block';
+  toggleLoader('inline-block');
 
-  fetch(
-    `${url}${API_KEY}&q=${searchWord}&image_type=photo&orientation=horizontal&safesearch=true&per_page=18`
-  )
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(response.status);
-      }
-      return response.json();
-    })
-    .then(data => {
-      gallery.textContent = '';
-      if (data.hits.length === 0) {
-        loader.style.display = 'none';
-        return iziToast.show(falseToast);
-      }
-      const dataList = data.hits.map(photo => {
-        return `
-        <li class="gallery-item">
-          <a href="${photo.largeImageURL}">
-            <img class="api-img" src="${photo.webformatURL}" alt="${photo.tags}">
-            <div class="img-desc">
-              <span><b>Likes:</b> <br/>${photo.likes}</span>
-              <span><b>Views:</b> <br/>${photo.views}</span>
-              <span><b>Comments:</b> <br/>${photo.comments}</span>
-              <span><b>Downloads:</b> <br/>${photo.downloads}</span>
-            </div>
-          </a>
-        </li>
-                  `;
-      });
+  await getImg();
 
-      gallery.insertAdjacentHTML('afterbegin', dataList.join(''));
+  if (arrImages.length > 0) {
+    toggleBtn('inline-block');
+  }
 
-      loader.style.display = 'none';
+  toggleLoader('none');
 
-      modalImg.refresh();
+  searchInp.value = '';
 
-      searchWord = '';
-
-      form.reset();
-    })
-    .catch(error => {
-      console.error('Error:', error);
-    });
 });
+
+loadBtn.addEventListener("click", async () => {
+  toggleBtn('none');
+  toggleLoader('inline-block')
+
+  totalPage += 1;
+
+  await getImg();
+
+  toggleLoader('none');
+});
+
+// ! End EventListeners
 
 const modalImg = new SimpleLightbox('.gallery a', {
   overlayOpacity: 0,

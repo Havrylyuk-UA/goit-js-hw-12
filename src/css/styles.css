@@ -29,7 +29,7 @@
 }
 
 .container {
-  width: 100vw;
+  /* width: 100vw; */
 
   display: flex;
   justify-content: start;
@@ -81,7 +81,6 @@ button {
   align-items: center;
   gap: 10px;
 
-  width: 75px;
   height: 40px;
 
   border-radius: 8px;
@@ -99,6 +98,10 @@ button {
 
 button:hover {
   background: #6c8cff;
+}
+
+.load-btn {
+  display: none;
 }
 
 .error-con {
