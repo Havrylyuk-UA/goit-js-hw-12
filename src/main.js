@@ -14,6 +14,7 @@ const form = document.querySelector('.form'),
 
   const searchImg = 40;
   let totalPage = 1;
+  let limit = 0;
 
   let searchWord = '';
   let arrImages = [];
@@ -51,6 +52,7 @@ const fetchAPI = async () => {
 const getImg = async () => {
   try {
     const data = await fetchAPI();
+    limit = data.totalHits;
 
     if (data.hits.length === 0) {
       toggleLoader('none');
@@ -59,19 +61,7 @@ const getImg = async () => {
       return iziToast.show(falseToast);
     }
 
-    if (Math.ceil(data.totalHits / searchImg) === totalPage) {
-      toggleBtn('none');
-      return iziToast.show({
-        icon: 'icon-false',
-        backgroundColor: '#FC5A5A',
-        message:
-          `We're sorry, but you've reached the end of search results.`,
-        messageColor: '#FAFAFB',
-        messageSize: '16px',
-        position: 'topRight',
-        close: false,
-      })
-    }
+
 
     renderImg(data)
 
@@ -81,6 +71,7 @@ const getImg = async () => {
 };
 
 const renderImg = (data) => {
+
   const dataList = data.hits.map(photo => {
     return `
     <li class="gallery-item">
@@ -103,6 +94,8 @@ const renderImg = (data) => {
 
   toggleBtn('inline-block');
 
+  checkLimit();
+
   scrollPage();
 
   modalImg.refresh();
@@ -120,6 +113,24 @@ const scrollPage = () => {
   if (totalPage > 1) {
   const imgSize = document.querySelector ('.gallery-item').getBoundingClientRect();
   window.scrollBy({ top: imgSize.height * 2.4, left: 0, behavior: "smooth" });
+  }
+}
+
+const checkLimit = () => {
+  console.log(totalPage);
+  console.log(Math.ceil(limit / searchImg));
+  if (Math.ceil(limit / searchImg) === totalPage) {
+    toggleBtn('none');
+    return iziToast.show({
+      icon: 'icon-false',
+      backgroundColor: '#FC5A5A',
+      message:
+        `We're sorry, but you've reached the end of search results.`,
+      messageColor: '#FAFAFB',
+      messageSize: '16px',
+      position: 'topRight',
+      close: false,
+    })
   }
 }
 
