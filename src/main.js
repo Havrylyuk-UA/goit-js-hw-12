@@ -117,8 +117,6 @@ const scrollPage = () => {
 }
 
 const checkLimit = () => {
-  console.log(totalPage);
-  console.log(Math.ceil(limit / searchImg));
   if (Math.ceil(limit / searchImg) === totalPage) {
     toggleBtn('none');
     return iziToast.show({
